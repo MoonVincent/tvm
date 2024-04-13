@@ -152,11 +152,12 @@ def derive_similarity_tag(dag, log_base=1.618):
     """
     ret = ""
     for op in dag.ops:
-        tag = op.attrs.get("auto_scheduler_task_scheduler_tag", None)
+        # tag = op.attrs.get("auto_scheduler_task_scheduler_tag", None)
+        tag = op.name
         if tag:
-            ret += op.attrs["auto_scheduler_task_scheduler_tag"] + "_"
-    if ret:
-        ret += "%d" % int(math.log(dag.flop_ct + 1, log_base))
+            ret += tag
+    #if ret:
+        #ret += "%d" % int(math.log(dag.flop_ct + 1, log_base))
     return ret
 
 
@@ -277,6 +278,8 @@ class TaskScheduler:
                 self.tag_to_group_id[tag] = len(self.tag_to_group_id)
                 self.group_task_ids.append([])
             self.group_task_ids[self.tag_to_group_id[tag]].append(i)
+        _ffi_api.GenerateSketchCaches(len(self.tag_to_group_id))
+        
 
     def tune(
         self,
@@ -349,7 +352,8 @@ class TaskScheduler:
             self.load_log_file,
             adaptive_training,
         )
-
+        # self._tune_task(0)
+        # self._tune_task(3)
         # do a round robin first to warm up
         for idx in range(len(self.tasks)):
             # skip warming up this task if it has been tuned before (restored from the log file)
@@ -455,8 +459,12 @@ class TaskScheduler:
         for callback in self.callbacks:
             callback.pre_tune(self, task_idx)
 
+        group_id = self.tag_to_group_id[self.task_tags[task_idx]]
+        print("task_id and group_id")
+        print(task_idx)
+        print(group_id)
         measure_inputs, measure_results = self.search_policies[task_idx].continue_search_one_round(
-            self.num_measures_per_round, self.measurer
+            self.num_measures_per_round, self.measurer, group_id
         )
 
         self.task_cts[task_idx] += 1

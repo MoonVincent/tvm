@@ -98,7 +98,7 @@ class PreloadCustomSketchRule(SearchCallback):
 class SearchPolicy(Object):
     """The base class of search policies."""
 
-    def continue_search_one_round(self, num_measure, measurer):
+    def continue_search_one_round(self, num_measure, measurer, group_id):
         """
         Continue the search by doing an additional search round.
 
@@ -116,7 +116,7 @@ class SearchPolicy(Object):
         results: List[MeasureResult]
             The results of measurments in this search round
         """
-        return _ffi_api.SearchPolicyContinueSearchOneRound(self, num_measure, measurer)
+        return _ffi_api.SearchPolicyContinueSearchOneRound(self, num_measure, measurer, group_id)
 
     def set_verbose(self, verbose):
         """

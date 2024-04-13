@@ -115,7 +115,7 @@ class SketchPolicyNode : public SearchPolicyNode {
                ProgramMeasurer measurer) final;
 
   std::pair<Array<MeasureInput>, Array<MeasureResult>> ContinueSearchOneRound(
-      int num_measure, ProgramMeasurer measurer) final;
+      int num_measure, ProgramMeasurer measurer, int group_id) final;
 
   /*!
    * \brief Generate sketches.
@@ -150,7 +150,7 @@ class SketchPolicyNode : public SearchPolicyNode {
    * \param random_states The picked random states, used as one of the output of this function.
    * \return The best several states generated in this search round.
    */
-  Array<State> SearchOneRound(int num_random_states, Array<State>* random_states = nullptr);
+  Array<State> SearchOneRound(int num_random_states, int group_id, Array<State>* random_states = nullptr);
 
   /*!
    * \brief Pick states from best states and random states with eps-greedy policy.

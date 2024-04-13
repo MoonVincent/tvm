@@ -105,8 +105,8 @@ TVM_REGISTER_GLOBAL("auto_scheduler.SearchPolicyRunCallbacks")
     });
 
 TVM_REGISTER_GLOBAL("auto_scheduler.SearchPolicyContinueSearchOneRound")
-    .set_body_typed([](SearchPolicy policy, int num_measure, ProgramMeasurer measurer) {
-      auto [inputs, results] = policy->ContinueSearchOneRound(num_measure, measurer);
+    .set_body_typed([](SearchPolicy policy, int num_measure, ProgramMeasurer measurer, int group_id) {
+      auto [inputs, results] = policy->ContinueSearchOneRound(num_measure, measurer, group_id);
       return Array<ObjectRef>{inputs, results};
     });
 

@@ -84,13 +84,13 @@ void parallel_for(int begin, int end, const std::function<void(int)>& f, int ste
     ICHECK(GLOBAL_PARALLEL_FOR_FLAG);
     GLOBAL_PARALLEL_FOR_FLAG = false;
   }
-  try {
+/*   try {
     for (auto&& i : res_vec) {
       i.get();
     }
   } catch (const std::exception& e) {
     LOG(FATAL) << "Parallel_for error with " << e.what();
-  }
+  } */
 }
 
 void parallel_for_dynamic(int begin, int end, int num_threads,

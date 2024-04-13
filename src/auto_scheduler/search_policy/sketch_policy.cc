@@ -65,6 +65,7 @@ static InitParallel init_parallel;
 static InitUnroll init_unroll;
 static InitVectorization init_vectorization;
 static InitThreadBind init_thread_bind;
+Array<State>* SketchCaches;
 
 /********** Sketch policy **********/
 TVM_REGISTER_NODE_TYPE(SketchPolicyNode);
@@ -162,7 +163,7 @@ State SketchPolicyNode::Search(int n_trials, int early_stopping, int num_measure
 
   if (n_trials <= 1) {
     // No measurement is allowed
-    const Array<State>& best_states = SearchOneRound(0);
+    const Array<State>& best_states = SearchOneRound(0, 0);
     ICHECK_GT(best_states.size(), 0);
     return best_states[0];
   } else {
@@ -189,7 +190,7 @@ State SketchPolicyNode::Search(int n_trials, int early_stopping, int num_measure
 
       // Search one round to get promising states
       PrintTitle("Search", verbose);
-      best_states = SearchOneRound(num_random * 3, &random_states);
+      best_states = SearchOneRound(num_random * 3, 0, &random_states);
 
       // Infer bound. This is necessary for computing the correct ToStr() for redundancy check
       best_states = search_task->compute_dag.InferBound(best_states);
@@ -240,7 +241,7 @@ State SketchPolicyNode::Search(int n_trials, int early_stopping, int num_measure
 }
 
 std::pair<Array<MeasureInput>, Array<MeasureResult>> SketchPolicyNode::ContinueSearchOneRound(
-    int num_measure, ProgramMeasurer measurer) {
+    int num_measure, ProgramMeasurer measurer, int group_id) {
   num_measure_per_iter_ = num_measure;
 
   Array<State> best_states, random_states;
@@ -250,7 +251,7 @@ std::pair<Array<MeasureInput>, Array<MeasureResult>> SketchPolicyNode::ContinueS
 
   // Search one round to get promising states
   PrintTitle("Search", verbose);
-  best_states = SearchOneRound(num_random * 3, &random_states);
+  best_states = SearchOneRound(num_random * 3, group_id, &random_states);
 
   // Infer bound. This is necessary for computing the correct ToStr() for redundancy check
   best_states = search_task->compute_dag.InferBound(best_states);
@@ -281,7 +282,7 @@ std::pair<Array<MeasureInput>, Array<MeasureResult>> SketchPolicyNode::ContinueS
   return std::make_pair(std::move(inputs), std::move(results));
 }
 
-Array<State> SketchPolicyNode::SearchOneRound(int num_random_states, Array<State>* random_states) {
+Array<State> SketchPolicyNode::SearchOneRound(int num_random_states, int group_id, Array<State>* random_states) {
   // Get parameters
   int population = GetIntParam(params, SketchParamKey::EvolutionarySearch::population);
   int num_use_measured = std::min(
@@ -291,12 +292,14 @@ Array<State> SketchPolicyNode::SearchOneRound(int num_random_states, Array<State
           population));
 
   // 1. Generate sketches
-  if (sketch_cache_.empty()) {
+/*   if (sketch_cache_.empty()) {
     sketch_cache_ = GenerateSketches();
+  } */
+  if (SketchCaches[group_id].empty()) {
+    SketchCaches[group_id] = GenerateSketches();
   }
-
   // 2. Sample the init population
-  Array<State> init_population = SampleInitPopulation(sketch_cache_);
+  Array<State> init_population = SampleInitPopulation(SketchCaches[group_id]);
 
   // 3. Perform evolutionary search.
   // Also insert already measured good states to the initial population
@@ -700,6 +703,11 @@ TVM_REGISTER_GLOBAL("auto_scheduler.SketchPolicy")
 
 TVM_REGISTER_GLOBAL("auto_scheduler.SketchPolicyGenerateSketches")
     .set_body_typed([](SketchPolicy policy) { return policy->GenerateSketches(); });
+
+TVM_REGISTER_GLOBAL("auto_scheduler.GenerateSketchCaches")
+    .set_body_typed([](int num_group) { 
+      SketchCaches = new Array<State>[num_group](); 
+      });
 
 TVM_REGISTER_GLOBAL("auto_scheduler.SketchPolicySampleInitialPopulation")
     .set_body_typed([](SketchPolicy policy) {
